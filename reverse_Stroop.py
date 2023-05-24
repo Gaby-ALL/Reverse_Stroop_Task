@@ -35,7 +35,6 @@ Welcome to the Reverse Stroop Task!
 In this task, you will see colored squares and words.
 Your task is to indicate the color of the word by clicking on the corresponding Square.You have to ignore the word itself.
 Press any space bar to start the task.
-If you are looking for an intern my name is Gabriel CONTACTE ME PLEASE at 06 45 71 86 98
 """
 
 instruction_screen = stimuli.TextScreen("Instructions", instruction_text)
