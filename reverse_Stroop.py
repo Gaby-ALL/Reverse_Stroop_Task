@@ -1,60 +1,127 @@
-#import the Expyriment package into Python
+# Import the Expyriment package into Python
 import random
-from expyriment import design, stimuli, control
+from expyriment import design, stimuli, control, misc
 
-#create a new Experiment object by calling the Experiment class and name it “First Experiment”
-exp = design.Experiment(name="reverse_stroop_task_PCBS")
+# Create a new Experiment 
+exp = design.Experiment(name="stroop_task_PCBS")
 
 # Define a list of color names
-colors = [(0, 255, 0),(0, 0, 255), (255, 255, 0), (255, 0, 0)]
+
+colors = [(255, 0, 0),(0, 255, 0),(0, 0, 255),(255, 255, 0)]
 color_names = ["Green", "Blue", "Yellow", "Red"]
 
-#initialize this experiment : Present the startup screen, Start an experimental clock...
+# Initialize this experiment
 control.initialize(exp)
+exp.mouse.show_cursor()
+exp.keyboard.wait()
 
-#Create the block 1
+
+# Create squares
+screen_size = exp.screen.surface.get_size()
+square_size = 150
+
+positions = [(400, 300), (-400, 300), (400, -300), (-400, -300)]  # top right, bottom right, top left, bottom left
+
+
+# Create the block 
 block_one = design.Block() #creat an experimental block
 
-# Create 5 trials and stimuli
-for r in range(5):
+# Create multiple trials 
+num_trials = 10  
 
-    # Randomly select color name and color index
+# Create instruction screen
+instruction_text = """
+Welcome to the Reverse Stroop Task!
+In this task, you will see colored squares and words.
+Your task is to indicate the color of the word by clicking on the corresponding Square.You have to ignore the word itself.
+Press any space bar to start the task.
+If you are looking for an intern my name is Gabriel CONTACTE ME PLEASE at 06 45 71 86 98
+"""
+
+instruction_screen = stimuli.TextScreen("Instructions", instruction_text)
+instruction_screen.present()
+exp.keyboard.wait_char(' ')
+
+#exp.keyboard.wait(expyriment.misc.constants.K_ANY)
+
+
+for trial_number in range(num_trials):
+
+    # Randomly select color name and color indix
     selected_color_name = random.choice(color_names)
     selected_color_index = random.randint(0, len(colors) - 1)
     selected_color = colors[selected_color_index]
+    trial_positions = positions.copy()
+    random.shuffle(trial_positions)
 
-    # Create an experimental trial
-    trial_one = design.Trial()
+    # Create square stimuli with shuffled positions for the trial
+    squares = [
+        stimuli.Rectangle(size=(square_size, square_size), position=trial_positions[0], colour=(255, 0, 0)),   # top-left
+        stimuli.Rectangle(size=(square_size, square_size), position=trial_positions[1], colour=(0, 255, 0)),   # top-right
+        stimuli.Rectangle(size=(square_size, square_size), position=trial_positions[2], colour=(0, 0, 255)),   # bottom-left
+        stimuli.Rectangle(size=(square_size, square_size), position=trial_positions[3], colour=(255, 255, 0))  # bottom-right
+    ]
 
-    # Create a TextLine stimulus with the selected color
-    stim = stimuli.TextLine(selected_color_name,text_colour=selected_color,text_size=70)
-    stim.preload()
+    # Create the trial
+    trial = design.Trial()
 
-    # Create colored squares
-    square_color = (255, 0, 0)  # Red color
-    square_position = (500, 500)  # Position of the square
-    square_size = (100, 100)  # Size of the square
-    square = stimuli.Rectangle(size=square_size, position=square_position, colour=square_color)
-    square.preload()
+    # Add the squares as stimuli for the trial
+    for square in squares:
+        trial.add_stimulus(square)
 
-    # Add the stimulus and the square to the trial
-    trial_one.add_stimulus(stim)
-    trial_one.add_stimulus(square)
+    # Create the text stimulus
+    text_stimulus = stimuli.TextLine(selected_color_name, text_colour=selected_color, text_size=70)
+
+    # Preload the text stimulus
+    text_stimulus.preload()
+
+    # Add the stimulus to the trial
+    trial.add_stimulus(text_stimulus)
 
     # Add the trial to the block
-    block_one.add_trial(trial_one) 
+    block_one.add_trial(trial) 
 
 # Add the block to the experiment
 exp.add_block(block_one)
 
-#start running the currently active (initiated) experiment : Present a screen to ask , Create a data file...
+# Start the experiment
 control.start()
 
 # Present the stimulus in sucession
-for trial in block_one.trials:
-    exp.clock.wait(1000)  # Wait for 1 second before presenting the stimulus
-    trial_one.stimuli[0].present()  # Present all stimuli in the trial simultaneously
-    exp.clock.wait(1000)  # Wait for 1 second before proceeding to the next trial
 
-#end experiment: automatically save the data and the event file and show the “Ending experiment” screen
+for block in exp.blocks:
+    for trial in block.trials:
+       
+        # Clear the screen and update
+        exp.screen.clear()
+        exp.screen.update()
+        exp.clock.wait(2000)
+
+        # Present all stimuli in the trial
+        for stimulus in trial.stimuli:
+            stimulus.preload()
+
+        # Present all stimuli simultaneously
+        for stimulus in trial.stimuli:
+            stimulus.present(clear=False)  # Set clear=False to present stimuli simultaneously
+
+        # Wait for participant response
+        button, position, _ = exp.mouse.wait_press()
+        
+        participant_response = None
+
+
+        for square in squares:
+            if square.overlapping_with_position(position):
+                participant_response = square.colour
+
+        exp.data.add([trial_number, selected_color_name, participant_response]) 
+
+        exp.clock.wait(1000) 
+
+
+#end experiment
+#exp.data.save("reverse_stroop_PCBS.csv")
+#control.end()
+exp.data.save("reverse_stroop_PCBS.csv")
 control.end()
